@@ -14,14 +14,14 @@ A single-window GUI application to monitor PBS (Portable Batch System) jobs over
 - **🎯 State Counters**: Clickable per-state chips (Running, Queued, Held, …) that filter the list
 - **🔍 Search**: Filter by job ID, name or queue
 - **📋 Job Details**: Summary (walltime/memory used vs. requested, exec host, output path) plus all `qstat -f` attributes
-- **⟳ Refresh**: Manual (button or F5), optional auto-refresh every 30s, optional finished jobs (`qstat -x`)
+- **⟳ Refresh**: Manual (button or F5), optional auto-refresh with a configurable interval (5 s to 1 h, default 30 s, remembered between sessions), optional finished jobs (`qstat -x`)
 
 ## Screenshot
 
 ![PBS Job Monitor main window](screenshot.png)
 
 - **Top**: connection bar with bookmarks
-- **Toolbar**: state counters (click to filter), search, finished jobs, auto-refresh
+- **Toolbar**: state counters (click to filter), search, finished jobs, auto-refresh and its interval
 - **Left**: job list; **right**: details of the selected job. The divider between them can be dragged, and both tables have vertical and horizontal scrollbars
 
 ## Requirements

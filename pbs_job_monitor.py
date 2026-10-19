@@ -25,7 +25,8 @@ KEY_FILE = os.path.expanduser('~/.pbs_job_monitor.key')
 BOOKMARKS_FILE = os.path.expanduser('~/.pbs_job_monitor.bookmarks')
 LEGACY_CREDENTIALS_FILE = 'credentials.enc'
 QSTAT = '/opt/pbs/bin/qstat'
-AUTO_REFRESH_MS = 30000
+AUTO_REFRESH_DEFAULT_S = 30
+AUTO_REFRESH_MIN_S, AUTO_REFRESH_MAX_S = 5, 3600
 
 # State letter -> (label, foreground, background)
 STATES = {
@@ -150,6 +151,7 @@ class BookmarkStore:
 
         self.sites = {}
         self.last = None
+        self.refresh_seconds = AUTO_REFRESH_DEFAULT_S
         self.load()
 
     def load(self):
@@ -158,6 +160,7 @@ class BookmarkStore:
                 data = json.loads(self.fernet.decrypt(f.read()).decode())
             self.sites = data.get('sites', {})
             self.last = data.get('last')
+            self.refresh_seconds = data.get('refresh_seconds', AUTO_REFRESH_DEFAULT_S)
         except FileNotFoundError:
             self.import_legacy()
         except Exception as e:
@@ -175,7 +178,8 @@ class BookmarkStore:
             pass
 
     def save(self):
-        data = json.dumps({'sites': self.sites, 'last': self.last}).encode()
+        data = json.dumps({'sites': self.sites, 'last': self.last,
+                           'refresh_seconds': self.refresh_seconds}).encode()
         fd = os.open(BOOKMARKS_FILE, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
         with os.fdopen(fd, 'wb') as f:
             f.write(self.fernet.encrypt(data))
@@ -313,9 +317,17 @@ class PBSJobMonitor:
 
         self.refresh_btn = ttk.Button(bar, text="Refresh", command=self.refresh_jobs)
         self.refresh_btn.pack(side='right')
+        ttk.Label(bar, text="s").pack(side='right', padx=(2, 8))
+        self.interval_var = tk.StringVar(value=str(self.bookmarks.refresh_seconds))
+        interval = ttk.Spinbox(bar, textvariable=self.interval_var, width=5, increment=5,
+                               from_=AUTO_REFRESH_MIN_S, to=AUTO_REFRESH_MAX_S,
+                               command=self.on_interval_changed)
+        interval.pack(side='right')
+        interval.bind('<Return>', self.on_interval_changed)
+        interval.bind('<FocusOut>', self.on_interval_changed)
         self.auto_var = tk.BooleanVar(value=False)
-        ttk.Checkbutton(bar, text="Auto-refresh (30s)", variable=self.auto_var,
-                        command=self.schedule_refresh).pack(side='right', padx=8)
+        ttk.Checkbutton(bar, text="Auto-refresh every", variable=self.auto_var,
+                        command=self.schedule_refresh).pack(side='right', padx=(8, 4))
         self.finished_var = tk.BooleanVar(value=False)
         ttk.Checkbutton(bar, text="Include finished", variable=self.finished_var,
                         command=self.refresh_jobs).pack(side='right', padx=8)
@@ -577,7 +589,26 @@ class PBSJobMonitor:
             self.master.after_cancel(self.refresh_job)
             self.refresh_job = None
         if self.auto_var.get() and self.conn:
-            self.refresh_job = self.master.after(AUTO_REFRESH_MS, self.refresh_jobs)
+            self.refresh_job = self.master.after(self.refresh_interval() * 1000, self.refresh_jobs)
+
+    def refresh_interval(self):
+        """Auto-refresh interval in seconds, clamped to the allowed range"""
+        try:
+            seconds = int(float(self.interval_var.get()))
+        except ValueError:
+            seconds = self.bookmarks.refresh_seconds
+        return max(AUTO_REFRESH_MIN_S, min(AUTO_REFRESH_MAX_S, seconds))
+
+    def on_interval_changed(self, event=None):
+        seconds = self.refresh_interval()
+        self.interval_var.set(str(seconds))
+        if seconds != self.bookmarks.refresh_seconds:
+            self.bookmarks.refresh_seconds = seconds
+            try:
+                self.bookmarks.save()
+            except Exception as e:
+                print(f"Error saving settings: {e}")
+        self.schedule_refresh()
 
     def render_chips(self):
         """Clickable per-state counters that double as the state filter"""
