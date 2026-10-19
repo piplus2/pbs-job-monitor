@@ -15,7 +15,7 @@ A simple GUI application to check and monitor PBS (Portable Batch System) job st
 
 ## Screenshots
 
-![PBS Job Monitor GUI](screenshot.svg)
+![PBS Job Monitor GUI - Login Window](screenshot_main_window.svg)
 
 **The PBS Job Monitor application shows a clean login interface where you enter your PBS server credentials. The green "Save & Login" button saves credentials locally encrypted, and the blue "Load Saved Credentials" button allows quick access without re-entering passwords.**
 
@@ -86,7 +86,7 @@ pbs-job-monitor/
 ├── pbs_job_monitor.py    # Main GUI application (341 lines)
 ├── README.md              # This documentation
 ├── SCREENSHOT.md          # Detailed UI guide with ASCII mockups
-├── screenshot.svg         # SVG screenshot of login screen
+├── screenshot_main_window.svg  # Main login window screenshot (SVG)
 └── credentials.enc        # Encrypted credentials (auto-generated on login)
 ```
 
