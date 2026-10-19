@@ -1,142 +1,62 @@
 # PBS Job Monitor - Visual Guide
 
-## Application Screenshots
+## Main Application Screenshot
 
-### 1. Login Screen
+![PBS Job Monitor GUI](./screenshot.png)
 
-The first time you run the application, you'll see a clean login interface:
+**Note**: The above image is a placeholder. After running the application with `python pbs_job_monitor.py`, take a screenshot and replace this file with the actual image.
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    PBS Job Monitor                       │
-├─────────────────────────────────────────────────────────┤
-│                                                          │
-│  Frontend IP/Hostname: [________________]               │
-│                                                          │
-│  Username:        [________________]                     │
-│                                                          │
-│  Password:             [________________*]               │
-│                                                          │
-│          [Save & Login]     [Load Saved Credentials]     │
-│                                                          │
-└─────────────────────────────────────────────────────────┘
-```
+### Screen Description
 
-**Features:**
-- Green "Save & Login" button for primary action
-- Blue "Load Saved Credentials" button for quick access
-- Auto-fill on credential load
+The main login screen shows:
+- **Window Title**: "PBS Job Monitor" with a close button (✕) in the top-right corner
+- **Input Fields**:
+  - Frontend IP/Hostname field
+  - Username field  
+  - Password field (masked with dots)
+- **Action Buttons**:
+  - Green "Save & Login" button - primary action
+  - Blue "Load Saved Credentials" button - for quick access to previously saved credentials
 
-### 2. PBS Job List Screen
+### Window Features
 
-After logging in, view all your jobs:
+- Clean, modern design with gradient background
+- Subtle visual pattern for depth
+- Instructional text below buttons explaining the interface
+- Footer showing app information
 
-```
-┌───────────────────────────────────────────────────────────────────┐
-│ PBS Jobs - Click to view details                          [X]     │
-├───────────────────────────────────────────────────────────────────┤
-│                                                          [Filter ▼] │
-├───────────────────────────────────────────────────────────────────┤
-│ Job 12345 (R): R                                                🟢 │
-│ Job 12346 (C): C                                                ⚫ │
-│ Job 12347 (H): H                                                🔴 │
-│ Job 12348 (E): E                                                🔵 │
-│ Job 12349 (S): S                                                🟠 │
-│ Job 12350 (T): T                                                🟣 │
-│ Job 12351 (P): P                                                🟡 │
-├───────────────────────────────────────────────────────────────────┤
-│ Filter by: [All ▼]                              [Apply Filter]    │
-└───────────────────────────────────────────────────────────────────┘
-```
+## Application States
 
-**Features:**
-- Color-coded job states for quick identification
-- Click any job to see full details
-- Dropdown filter for specific states
-- Scrollable list for many jobs
+### 1. Login Screen (Main)
+
+Shown above - this is the initial state when first launching the application or after logging out.
+
+### 2. Job List Screen
+
+After saving credentials and clicking "Save & Login":
+- Displays all your PBS jobs in a scrollable list
+- Each job shows: `Job ID (State)` with color indicator
+- Color-coded states for quick identification:
+  - 🟢 Running, ⚫ Completed, 🔴 Held, etc.
+- Filter dropdown to show only specific states
+- Click any job to view full details
 
 ### 3. Job Details Screen
 
-Click on a job to view complete information:
-
-```
-┌───────────────────────────────────────────────────────────────────┐
-│ Job Details: 12345 (R)                                      [X] │
-├───────────────────────────────────────────────────────────────────┤
-│ Batch Name:              my_analysis_job                         │
-│ Batch ID:                12345                                   │
-│ State:                   R                                       │
-│ Job Run:                 0                                       │
-│ Queue:                  batch                                    │
-│ Start Time:     Mon Oct 19 10:30:00 2026                       │
-│ End Time:          (running)                                   │
-│ Elapsed Time:      02:15:30                                    │
-│ Request Memory:    4096 MB                                     │
-│ Used Memory:        2048 MB                                     │
-│ Exit Code:              -                                       │
-│ User:                 piuser                                    │
-│ Host:                slurm01                                     │
-│ Account:              research                                   │
-│ Command:            python /path/to/script.py                   │
-│ ...                                                              │
-├───────────────────────────────────────────────────────────────────┤
-│ [Close]                                                            │
-└───────────────────────────────────────────────────────────────────┘
-```
-
-**Features:**
-- All qstat -f output displayed
-- Scrollable text area for long details
-- Clean monospace font for easy reading
+After clicking on a job in the list:
+- Shows complete qstat output for that job
+- Scrollable text area with monospace font
+- Displays all job information including:
+  - Batch name and ID
+  - Queue, start/end times
+  - Memory usage
+  - Command being executed
 - Close button to return to job list
 
-### 4. Filtered Job List
-
-Use the filter dropdown to show only specific job states:
-
-```
-┌───────────────────────────────────────────────────────────────────┐
-│ PBS Jobs - Click to view details                          [X]     │
-├───────────────────────────────────────────────────────────────────┤
-│                                                          [Filter ▼] │
-├───────────────────────────────────────────────────────────────────┤
-│ Filter by: [Running (R) ▼]                                       │
-├───────────────────────────────────────────────────────────────────┤
-│ Job 12345 (R): R                                                🟢 │
-│ Job 12400 (R): R                                                🟢 │
-│ Job 12401 (R): R                                                🟢 │
-│ Job 12500 (R): R                                                🟢 │
-├───────────────────────────────────────────────────────────────────┤
-│ Filter by: [Completed (C) ▼]                                     │
-│                                                          [Apply Filter] │
-└───────────────────────────────────────────────────────────────────┘
-```
-
-### 5. Empty/No Jobs State
-
-When no jobs are found:
-
-```
-┌───────────────────────────────────────────────────────────────────┐
-│ PBS Jobs - Click to view details                          [X]     │
-├───────────────────────────────────────────────────────────────────┤
-│                                                          [Filter ▼] │
-├───────────────────────────────────────────────────────────────────┤
-│ No jobs found or SSH connection failed.                        │
-│                                                                  │
-│ Make sure:                                                       │
-│   1. The frontend IP is correct                                 │
-│   2. Username and password are valid                             │
-│   3. PBS queue is accessible via SSH                             │
-├───────────────────────────────────────────────────────────────────┤
-│ Filter by: [All ▼]                              [Apply Filter]    │
-└───────────────────────────────────────────────────────────────────┘
-```
-
-## Window Features
+## Window Behavior
 
 ### Resizability
-- Both windows are resizable for comfortable viewing
+- All windows are resizable for comfortable viewing
 - Drag from window edges or corners
 
 ### Scrollbars
@@ -144,31 +64,60 @@ When no jobs are found:
 - Smooth scrolling for job lists and details
 
 ### Click Interaction
-- Any job in the list can be clicked (cursor changes to pointer)
-- Job details display full qstat output
-- Close buttons on detail windows
+- Any job in the list changes cursor to pointer when hovered
+- Click displays full job details in new window
+- Detail windows have close button (X) in top-right corner
 
-### Status Bar
-- Optional status bar at bottom shows connection state
-- Displays "Connected" when SSH is working
-
-## Color Coding Explanation
-
-Each job state has a distinct color:
+## Color Coding System
 
 | State | Emoji | Meaning | Example Use Case |
 |-------|-------|---------|------------------|
-| 🟢 R | Running | Job actively processing data | Your analysis jobs running |
-| ⚫ C | Completed | Finished successfully | Batch reports generated |
-| 🔴 H | Held | Waiting to run | Jobs held for debugging |
-| 🔵 E | Exited | Finished with code | Script completed (check exit code) |
-| 🟠 S | Suspending | Pausing job | Memory limit reached |
-| 🟣 T | Terminating | Killing job | Manual termination |
-| 🟡 P | Pending | Waiting for resources | Jobs queued for allocation |
+| R | 🟢 Green | Running | Analysis jobs processing data |
+| C | ⚫ Gray | Completed | Reports generated successfully |
+| H | 🔴 Red | Held | Jobs waiting to be released |
+| E | 🔵 Blue | Exited | Script finished (check exit code) |
+| S | 🟠 Orange | Suspending | Paused due to resource limits |
+| T | 🟣 Purple | Terminating | Being killed manually |
+| P | 🟡 Yellow | Pending | Waiting for scheduler allocation |
 
-## Keyboard Shortcuts (Optional Enhancement)
+## Installation & First Run
 
-Future enhancements could include:
-- `Ctrl+C`: Copy selected job ID
-- `Ctrl+F`: Find job in list
-- `Esc`: Close detail window
+1. **Install dependencies**:
+   ```bash
+   pip install cryptography
+   ```
+
+2. **Launch application**:
+   ```bash
+   python pbs_job_monitor.py
+   ```
+
+3. **First time setup**:
+   - Enter PBS server IP, username, password
+   - Click "Save & Login" 
+   - Credentials saved encrypted to `credentials.enc`
+   - Jobs displayed automatically
+
+## Tips for Best Results
+
+- Use a high-resolution display for better visual clarity
+- Consider using SSH keys instead of passwords for enhanced security
+- Take screenshot after first successful login to replace placeholder
+- Check SCREENSHOT.md for detailed ASCII mockups of each screen state
+
+## File Structure
+
+```
+pbs-job-monitor/
+├── pbs_job_monitor.py    # Main GUI application
+├── README.md              # Main documentation with screenshot
+├── SCREENSHOT.md          # This visual guide
+└── credentials.enc        # Encrypted credential storage (auto-generated)
+```
+
+## Future Enhancement Ideas
+
+- Add actual PNG/JPEG screenshots when available
+- Include before/after state comparisons
+- Show error handling examples
+- Document keyboard shortcuts if added later

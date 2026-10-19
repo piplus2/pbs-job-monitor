@@ -15,55 +15,13 @@ A simple GUI application to check and monitor PBS (Portable Batch System) job st
 
 ## Screenshots
 
-### Login Screen
+![PBS Job Monitor GUI](screenshot.png)
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    PBS Job Monitor                       │
-├─────────────────────────────────────────────────────────┤
-│                                                          │
-│  Frontend IP/Hostname: [192.168.1.100]                 │
-│  Username:          [piuser]                            │
-│  Password:            [•••••••••]                       │
-│                                                          │
-│                  [Save & Login]      [Load Credentials] │
-│                                                          │
-└─────────────────────────────────────────────────────────┘
-```
+*The PBS Job Monitor application shows a clean login interface where you enter your PBS server credentials. The green "Save & Login" button saves credentials locally encrypted, and the blue "Load Saved Credentials" button allows quick access without re-entering passwords.*
 
-### Job List Screen
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│ PBS Jobs - Click to view details                    [Filter ▼] │
-├─────────────────────────────────────────────────────────────────┤
-│ Job 12345 (R): R                                              ✓  │
-│ Job 12346 (C): C                                              ⚫  │
-│ Job 12347 (H): H                                              🔴  │
-│ Job 12348 (E): E                                              🔵  │
-│ Job 12349 (S): S                                              🟠  │
-│ Job 12350 (T): T                                              🟣  │
-│ Job 12351 (P): P                                              🟡  │
-├─────────────────────────────────────────────────────────────────┤
-│ [Filter by State]      [All ▼]                               [Apply] │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### Job Details Screen
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│ Job Details: 12345 (R)                                [Close X] │
-├─────────────────────────────────────────────────────────────────┤
-│ Batch Name: my_job                                              │
-│ Queue: batch                                                    │
-│ Start Time: Mon Oct 19 10:30:00 2026                         │
-│ End Time:   (running)                                          │
-│ Elapsed Time: 02:15:30                                        │
-│ Memory Used: 2048 MB                                           │
-│ Exit Code: -                                                    │
-│ ...                                                              │
-└─────────────────────────────────────────────────────────────────┘
+**Note**: Replace `screenshot.png` with an actual screenshot image file when available. The current placeholder can be replaced by taking a screenshot after running:
+```bash
+python pbs_job_monitor.py
 ```
 
 ## Requirements
@@ -132,6 +90,7 @@ A simple GUI application to check and monitor PBS (Portable Batch System) job st
 pbs-job-monitor/
 ├── pbs_job_monitor.py    # Main GUI application (341 lines)
 ├── README.md              # This documentation
+├── SCREENSHOT.md          # Detailed UI guide with ASCII mockups
 └── credentials.enc        # Encrypted credentials (auto-generated on login)
 ```
 
@@ -164,21 +123,6 @@ Install the cryptography package:
 ```bash
 pip install cryptography
 ```
-
-## Screenshot Examples
-
-The application runs with a clean, modern interface:
-
-1. **Login Screen**: Simple form with IP, username, password fields
-2. **Job List**: Scrollable list with color-coded job states
-3. **Job Details**: Full qstat output in a scrollable text area
-
-### Window Features
-
-- Resizable windows for comfortable viewing
-- Scrollbars for long job lists
-- Click-to-select interaction
-- Context-sensitive filtering
 
 ## License
 
