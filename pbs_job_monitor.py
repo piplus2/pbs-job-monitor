@@ -227,15 +227,16 @@ class PBSJobMonitor:
         self.build_main_area()
 
         self.refresh_bookmark_list()
-        if self.bookmarks.last in self.bookmarks.sites:
-            self.bookmark_var.set(self.bookmarks.last)
+        last = self.bookmarks.last
+        if last is not None and last in self.bookmarks.sites:
+            self.bookmark_var.set(last)
             self.on_bookmark_selected()
 
         # Start with the divider where all job list columns fit
         self.master.update_idletasks()
         self.paned.sashpos(0, sum(c[2] for c in COLUMNS) + 20)
 
-        self.master.bind('<F5>', lambda e: self.refresh_jobs())
+        self.master.bind('<F5>', lambda _: self.refresh_jobs())
         self.master.protocol('WM_DELETE_WINDOW', self.on_close)
         self.master.after(100, self.poll_results)
 
@@ -301,7 +302,7 @@ class PBSJobMonitor:
             ttk.Label(bar, text=label).grid(row=0, column=col, sticky='w', padx=(8, 6))
             entry = ttk.Entry(bar, textvariable=var, width=width, show=show)
             entry.grid(row=0, column=col + 1, sticky='we')
-            entry.bind('<Return>', lambda e: self.connect())
+            entry.bind('<Return>', lambda _: self.connect())
             col += 2
         bar.columnconfigure(5, weight=1)
 
@@ -332,7 +333,7 @@ class PBSJobMonitor:
         ttk.Checkbutton(bar, text="Include finished", variable=self.finished_var,
                         command=self.refresh_jobs).pack(side='right', padx=8)
         self.search_var = tk.StringVar()
-        self.search_var.trace_add('write', lambda *a: self.populate_tree())
+        self.search_var.trace_add('write', lambda *_: self.populate_tree())
         ttk.Entry(bar, textvariable=self.search_var, width=22).pack(side='right')
         ttk.Label(bar, text="Search").pack(side='right', padx=(8, 4))
 
@@ -420,7 +421,7 @@ class PBSJobMonitor:
     def refresh_bookmark_list(self):
         self.bookmark_combo.configure(values=self.bookmarks.names())
 
-    def on_bookmark_selected(self, event=None):
+    def on_bookmark_selected(self, _=None):
         site = self.bookmarks.sites.get(self.bookmark_var.get())
         if site:
             self.host_var.set(site['host'])
@@ -493,10 +494,11 @@ class PBSJobMonitor:
     def run_remote(self, command):
         """Run a command on the frontend, returning (exit_code, stdout, stderr)"""
         with self.ssh_lock:
-            transport = self.ssh.get_transport() if self.ssh else None
-            if transport is None or not transport.is_active():
+            ssh = self.ssh
+            transport = ssh.get_transport() if ssh is not None else None
+            if ssh is None or transport is None or not transport.is_active():
                 raise ConnectionError("Not connected")
-            _, stdout, stderr = self.ssh.exec_command(command, timeout=30)
+            _, stdout, stderr = ssh.exec_command(command, timeout=30)
             out = stdout.read().decode(errors='replace')
             err = stderr.read().decode(errors='replace')
             return stdout.channel.recv_exit_status(), out, err
@@ -518,7 +520,7 @@ class PBSJobMonitor:
         self.set_status(f"Connecting to {user}@{host}...")
         self.set_indicator("Connecting...", '#fbbf24')
         self.run_async(lambda: self.open_ssh(host, user, password),
-                       lambda r, e: self.on_connected(host, user, password, e))
+                       lambda _, e: self.on_connected(host, user, password, e))
 
     def on_connected(self, host, user, password, error):
         self.connect_btn.configure(state='normal')
@@ -599,7 +601,7 @@ class PBSJobMonitor:
             seconds = self.bookmarks.refresh_seconds
         return max(AUTO_REFRESH_MIN_S, min(AUTO_REFRESH_MAX_S, seconds))
 
-    def on_interval_changed(self, event=None):
+    def on_interval_changed(self, _=None):
         seconds = self.refresh_interval()
         self.interval_var.set(str(seconds))
         if seconds != self.bookmarks.refresh_seconds:
@@ -631,7 +633,7 @@ class PBSJobMonitor:
                             padx=10, pady=3, cursor='hand2',
                             highlightthickness=2, highlightbackground=fg if active else BG)
             chip.pack(side='left', padx=(0, 6))
-            chip.bind('<Button-1>', lambda e, s=letter: self.set_state_filter(s))
+            chip.bind('<Button-1>', lambda _, s=letter: self.set_state_filter(s))
 
     def set_state_filter(self, letter):
         self.state_filter = letter
@@ -673,7 +675,7 @@ class PBSJobMonitor:
 
     # -------------------------------------------------------------- details
 
-    def on_job_selected(self, event=None):
+    def on_job_selected(self, _=None):
         selection = self.tree.selection()
         if not selection or not self.conn:
             return
@@ -729,7 +731,7 @@ class PBSJobMonitor:
         widest = max((font.measure(v) for v in attrs.values()), default=0)
         self.attr_tree.column('value', width=max(280, widest + 20))
 
-    def copy_attribute(self, event=None):
+    def copy_attribute(self, _=None):
         item = self.attr_tree.focus()
         if item:
             value = self.attr_tree.item(item, 'values')[1]
