@@ -18,7 +18,7 @@ A single-window GUI application to monitor PBS (Portable Batch System) jobs over
 
 ## Screenshot
 
-![PBS Job Monitor main window](screenshot.png)
+![PBS Job Monitor main window](screenshot_main.png)
 
 - **Top**: connection bar with bookmarks
 - **Toolbar**: state counters (click to filter), search, finished jobs, auto-refresh and its interval
@@ -78,7 +78,7 @@ Job IDs are shown without the server suffix (e.g. `1234` instead of `1234.energo
 pbs-job-monitor/
 ├── pbs_job_monitor.py    # Main GUI application
 ├── README.md              # This documentation
-└── screenshot.png         # Screenshot of the main window
+└── screenshot_main.png    # Screenshot of the main window
 ```
 
 Bookmarks and the encryption key live in your home directory, not in the project.
