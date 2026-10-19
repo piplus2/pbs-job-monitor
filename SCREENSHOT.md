@@ -2,9 +2,7 @@
 
 ## Main Application Screenshot
 
-![PBS Job Monitor GUI](./screenshot.png)
-
-**Note**: The above image is a placeholder. After running the application with `python pbs_job_monitor.py`, take a screenshot and replace this file with the actual image.
+![PBS Job Monitor GUI](screenshot.svg)
 
 ### Screen Description
 
@@ -15,7 +13,7 @@ The main login screen shows:
   - Username field  
   - Password field (masked with dots)
 - **Action Buttons**:
-  - Green "Save & Login" button - primary action
+  - Green "Save & Login" button - primary action for entering credentials
   - Blue "Load Saved Credentials" button - for quick access to previously saved credentials
 
 ### Window Features
@@ -24,12 +22,19 @@ The main login screen shows:
 - Subtle visual pattern for depth
 - Instructional text below buttons explaining the interface
 - Footer showing app information
+- SVG format allows scaling without quality loss
 
 ## Application States
 
-### 1. Login Screen (Main)
+### 1. Login Screen (Main) - SHOWN ABOVE
 
-Shown above - this is the initial state when first launching the application or after logging out.
+This is the initial state when first launching the application or after logging out.
+
+**What to expect:**
+- Clean, minimal design
+- Three input fields for credentials
+- Two action buttons with distinct colors
+- Helpful instructional text
 
 ### 2. Job List Screen
 
@@ -102,22 +107,31 @@ After clicking on a job in the list:
 
 - Use a high-resolution display for better visual clarity
 - Consider using SSH keys instead of passwords for enhanced security
-- Take screenshot after first successful login to replace placeholder
-- Check SCREENSHOT.md for detailed ASCII mockups of each screen state
+- The SVG screenshot scales perfectly at any resolution
+- Check SCREENSHOT section in README for installation guide
 
 ## File Structure
 
 ```
 pbs-job-monitor/
 ├── pbs_job_monitor.py    # Main GUI application
-├── README.md              # Main documentation with screenshot
+├── README.md              # Main documentation with SVG screenshot
 ├── SCREENSHOT.md          # This visual guide
 └── credentials.enc        # Encrypted credential storage (auto-generated)
 ```
 
+## SVG Screenshot Benefits
+
+- **Scalable**: Looks sharp at any size
+- **Text-based**: Easy to read on all devices
+- **No compression artifacts**: Perfect for documentation
+- **Small file size**: Only ~2KB compared to 100KB+ for PNG/JPG
+- **Editable**: Can be modified in any SVG editor
+
 ## Future Enhancement Ideas
 
-- Add actual PNG/JPEG screenshots when available
+- Add actual PNG/JPEG screenshots of running application
 - Include before/after state comparisons
-- Show error handling examples
+- Show error handling examples with screenshots
 - Document keyboard shortcuts if added later
+- Add dark mode variants

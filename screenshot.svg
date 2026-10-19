@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="600" height="480" viewBox="0 0 600 480" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="600" height="480" fill="#f5f0e9"/>
+  
+  <!-- Title Bar (dark gray) -->
+  <rect x="0" y="0" width="600" height="30" fill="#2c2c2c"/>
+  
+  <!-- Close Button (red circle) -->
+  <circle cx="580" cy="14" r="7.5" fill="#cc0000"/>
+  <text x="575" y="21" font-family="Arial, sans-serif" font-size="13" fill="white">✕</text>
+  
+  <!-- Window Title -->
+  <text x="20" y="23" font-family="Arial, sans-serif" font-size="16" fill="#ffffff" font-weight="bold">PBS Job Monitor</text>
+  
+  <!-- Content Area -->
+  <rect x="0" y="30" width="600" height="450" fill="#f5f0e9"/>
+  
+  <!-- Window Title -->
+  <text x="25" y="58" font-family="Arial, sans-serif" font-size="19" font-weight="bold" fill="#333333">PBS Job Monitor</text>
+  
+  <!-- Input Field: IP/Hostname -->
+  <rect x="20" y="78" width="560" height="25" fill="#e8e4dc" rx="3"/>
+  <line x1="20" y1="98" x2="170" y2="98" stroke="#999" stroke-width="1"/>
+  <text x="185" y="92" font-family="Arial, sans-serif" font-size="13" fill="#666">Frontend IP/Hostname:</text>
+  
+  <!-- Input Field: Username -->
+  <rect x="20" y="113" width="560" height="25" fill="#e8e4dc" rx="3"/>
+  <line x1="20" y1="133" x2="150" y2="133" stroke="#999" stroke-width="1"/>
+  <text x="165" y="127" font-family="Arial, sans-serif" font-size="13" fill="#666">Username:</text>
+  
+  <!-- Input Field: Password -->
+  <rect x="20" y="148" width="560" height="25" fill="#e8e4dc" rx="3"/>
+  <line x1="20" y1="168" x2="200" y2="168" stroke="#999" stroke-width="1"/>
+  <text x="215" y="162" font-family="Arial, sans-serif" font-size="13" fill="#666">Password:</text>
+  
+  <!-- Green Button: Save & Login -->
+  <rect x="200" y="198" width="130" height="42" rx="7" fill="#4CAF50"/>
+  <rect x="200" y="198" width="130" height="42" rx="7" fill="#fff" opacity="0.2"/>
+  <text x="265" y="224" font-family="Arial, sans-serif" font-size="15" fill="white" text-anchor="middle" font-weight="bold">Save &amp; Login</text>
+  
+  <!-- Blue Button: Load Credentials -->
+  <rect x="345" y="198" width="220" height="42" rx="7" fill="#2196F3"/>
+  <rect x="345" y="198" width="220" height="42" rx="7" fill="#fff" opacity="0.2"/>
+  <text x="455" y="224" font-family="Arial, sans-serif" font-size="13" fill="white" text-anchor="middle">Load Saved Credentials</text>
+  
+  <!-- Instructional Background Box -->
+  <rect x="20" y="258" width="560" height="90" fill="#e8f5e9" rx="5"/>
+  
+  <!-- Instruction Text Line 1 -->
+  <text x="30" y="286" font-family="Arial, sans-serif" font-size="14" fill="#2e7d32">Click "Save &amp; Login" to enter your PBS server</text>
+  <text x="30" y="304" font-family="Arial, sans-serif" font-size="14" fill="#2e7d32">credentials.</text>
+  
+  <!-- Instruction Text Line 2 -->
+  <text x="30" y="326" font-family="Arial, sans-serif" font-size="14" fill="#1565c0">Credentials are saved encrypted locally</text>
+  <text x="30" y="344" font-family="Arial, sans-serif" font-size="14" fill="#1565c0">for quick access next time.</text>
+  
+  <!-- Footer Info -->
+  <text x="20" y="435" font-family="Arial, sans-serif" font-size="12" fill="#757575">PBS Job Monitor GUI</text>
+  <text x="35" y="450" font-family="Arial, sans-serif" font-size="12" fill="#9e9e9e">Encrypted credentials • Color-coded job states</text>
+</svg>
