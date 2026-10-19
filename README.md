@@ -16,28 +16,9 @@ A single-window GUI application to monitor PBS (Portable Batch System) jobs over
 - **📋 Job Details**: Summary (walltime/memory used vs. requested, exec host, output path) plus all `qstat -f` attributes
 - **⟳ Refresh**: Manual (button or F5), optional auto-refresh every 30s, optional finished jobs (`qstat -x`)
 
-## Layout
+## Screenshot
 
-```
-+-------------------------------------------------------------------------------+
-| PBS Job Monitor                                          (o) paolo@energon01   |
-+-------------------------------------------------------------------------------+
-| Connection                                                                    |
-| Bookmark [energon v] [Save] [Delete]  Host [...]  User [...]  Password [***]  |
-|                                                                  [Connect]    |
-+-------------------------------------------------------------------------------+
-| [All 5] [Running 2] [Queued 1] [Held 1]   Search [___] [ ]Finished [ ]Auto [Refresh]
-+---------------------------------------------+---------------------------------+
-| Job ID  Name        Queue  State      ...   | Job 48211              Running  |
-| 48211   train_big   workq  R Running        | train_big                       |
-| 48212   preprocess  workq  Q Queued         | Walltime   12:31:00 / 48:00:00  |
-| 48214   stuck_job   workq  H Held           | Memory     41gb / 64gb          |
-|                                             | All attributes                  |
-|                                             | Attribute        Value          |
-+---------------------------------------------+---------------------------------+
-| paolo@energon01  |  5 jobs  |  updated 11:05:14                               |
-+-------------------------------------------------------------------------------+
-```
+![PBS Job Monitor main window](screenshot.png)
 
 - **Top**: connection bar with bookmarks
 - **Toolbar**: state counters (click to filter), search, finished jobs, auto-refresh
@@ -96,7 +77,8 @@ Job IDs are shown without the server suffix (e.g. `1234` instead of `1234.energo
 ```
 pbs-job-monitor/
 ├── pbs_job_monitor.py    # Main GUI application
-└── README.md              # This documentation
+├── README.md              # This documentation
+└── screenshot.png         # Screenshot of the main window
 ```
 
 Bookmarks and the encryption key live in your home directory, not in the project.

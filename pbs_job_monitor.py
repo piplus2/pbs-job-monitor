@@ -52,8 +52,8 @@ MUTED = '#6b7280'
 ACCENT = '#2563eb'
 
 COLUMNS = (
-    ('id', 'Job ID', 110, False),
-    ('name', 'Name', 220, True),
+    ('id', 'Job ID', 90, False),
+    ('name', 'Name', 160, True),
     ('queue', 'Queue', 90, False),
     ('state', 'State', 100, False),
     ('nodes', 'Nodes', 60, False),
@@ -199,7 +199,7 @@ class PBSJobMonitor:
     def __init__(self):
         self.master = tk.Tk()
         self.master.title("PBS Job Monitor")
-        self.master.geometry("1200x740")
+        self.master.geometry("1280x760")
         self.master.minsize(900, 560)
         self.master.configure(bg=BG)
 
@@ -219,13 +219,17 @@ class PBSJobMonitor:
         self.build_header()
         self.build_connection_bar()
         self.build_toolbar()
+        self.build_status_bar()  # before the expanding main area, so pack keeps room for it
         self.build_main_area()
-        self.build_status_bar()
 
         self.refresh_bookmark_list()
         if self.bookmarks.last in self.bookmarks.sites:
             self.bookmark_var.set(self.bookmarks.last)
             self.on_bookmark_selected()
+
+        # Start with the divider where all job list columns fit
+        self.master.update_idletasks()
+        self.paned.sashpos(0, sum(c[2] for c in COLUMNS) + 20)
 
         self.master.bind('<F5>', lambda e: self.refresh_jobs())
         self.master.protocol('WM_DELETE_WINDOW', self.on_close)
@@ -323,7 +327,7 @@ class PBSJobMonitor:
         self.render_chips()
 
     def build_main_area(self):
-        paned = ttk.PanedWindow(self.master, orient='horizontal')
+        self.paned = paned = ttk.PanedWindow(self.master, orient='horizontal')
         paned.pack(fill='both', expand=True, padx=12, pady=(0, 6))
 
         # Job list
