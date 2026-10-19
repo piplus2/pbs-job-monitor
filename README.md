@@ -1,35 +1,60 @@
 # PBS Job Monitor
 
-A simple GUI application to check and monitor PBS (Portable Batch System) job states with encrypted local credential storage.
+A single-window GUI application to monitor PBS (Portable Batch System) jobs over SSH, with encrypted bookmarks for multiple sites.
 
 ![Python Version](https://img.shields.io/badge/python-3.7+-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
 ## Features
 
-- **🔐 Secure Login**: Enter frontend IP/hostname, username, and password
-- **💾 Encrypted Credentials**: Passwords are saved locally using Fernet encryption
-- **📊 Job List View**: Display all your PBS jobs with their current states (color-coded)
-- **🎯 Filter by State**: Filter jobs by state (Running, Completed, Held, etc.)
-- **🔍 Detailed View**: Click on any job to view full job details
+- **🪟 Single Window**: Connection bar at the top, job list and job details below
+- **★ Bookmarks**: Save multiple sites/logins and switch between them from a dropdown
+- **💾 Encrypted Storage**: Bookmarks (including passwords) are encrypted locally with Fernet
+- **📊 Job List**: Sortable, color-coded table (ID, name, queue, state, nodes, CPUs, memory, times)
+- **🎯 State Counters**: Clickable per-state chips (Running, Queued, Held, …) that filter the list
+- **🔍 Search**: Filter by job ID, name or queue
+- **📋 Job Details**: Summary (walltime/memory used vs. requested, exec host, output path) plus all `qstat -f` attributes
+- **⟳ Refresh**: Manual (button or F5), optional auto-refresh every 30s, optional finished jobs (`qstat -x`)
 
-## Screenshots
+## Layout
 
-![PBS Job Monitor GUI - Login Window](screenshot_main_window.svg)
+```
++-------------------------------------------------------------------------------+
+| PBS Job Monitor                                          (o) paolo@energon01   |
++-------------------------------------------------------------------------------+
+| Connection                                                                    |
+| Bookmark [energon v] [Save] [Delete]  Host [...]  User [...]  Password [***]  |
+|                                                                  [Connect]    |
++-------------------------------------------------------------------------------+
+| [All 5] [Running 2] [Queued 1] [Held 1]   Search [___] [ ]Finished [ ]Auto [Refresh]
++---------------------------------------------+---------------------------------+
+| Job ID  Name        Queue  State      ...   | Job 48211              Running  |
+| 48211   train_big   workq  R Running        | train_big                       |
+| 48212   preprocess  workq  Q Queued         | Walltime   12:31:00 / 48:00:00  |
+| 48214   stuck_job   workq  H Held           | Memory     41gb / 64gb          |
+|                                             | All attributes                  |
+|                                             | Attribute        Value          |
++---------------------------------------------+---------------------------------+
+| paolo@energon01  |  5 jobs  |  updated 11:05:14                               |
++-------------------------------------------------------------------------------+
+```
 
-**The PBS Job Monitor application shows a clean login interface where you enter your PBS server credentials. The green "Save & Login" button saves credentials locally encrypted, and the blue "Load Saved Credentials" button allows quick access without re-entering passwords.**
+- **Top**: connection bar with bookmarks
+- **Toolbar**: state counters (click to filter), search, finished jobs, auto-refresh
+- **Left**: job list; **right**: details of the selected job. The divider between them can be dragged, and both tables have vertical and horizontal scrollbars
 
 ## Requirements
 
-- Python 3.7+
+- Python 3.7+ with Tkinter (preferably a Tk build with Xft, see Troubleshooting)
 - `cryptography` package for encryption
+- `paramiko` package for SSH
 - SSH access to PBS server
 
 ### Installation
 
 1. **Install dependencies:**
    ```bash
-   pip install cryptography
+   pip install cryptography paramiko
    ```
 
 2. **Run the application:**
@@ -39,73 +64,59 @@ A simple GUI application to check and monitor PBS (Portable Batch System) job st
 
 ## Usage
 
-### First Time Setup
+1. Fill in **Host**, **User** and **Password** in the connection bar (leave the password empty to use SSH keys / agent)
+2. Click **Save** to store them as a bookmark; next time just pick it from the **Bookmark** dropdown
+3. Click **Connect** (or press Enter): your jobs appear in the table
+4. Click a job to see its details on the right; double-click an attribute to copy its value
+5. Click a state chip to filter, a column header to sort, and **Refresh** / F5 to reload
 
-1. Launch the application:
-   ```bash
-   python pbs_job_monitor.py
-   ```
-
-2. You'll see the login screen with two options:
-   - **Save & Login**: Enter your PBS server credentials and save them encrypted locally
-   - **Load Saved Credentials**: Load previously saved credentials (credentials are stored securely in `credentials.enc`)
-
-3. After saving, you'll automatically see your job list
-
-### Viewing Jobs
-
-- **All jobs** are displayed by default with color-coded states
-- Click on any job to see full details
-- Use the filter dropdown to show only specific job states
-- Jobs are sorted by JobID
+Job IDs are shown without the server suffix (e.g. `1234` instead of `1234.energon01`).
 
 ## Color Legend
 
 | State | Color | Description |
 |-------|-------|-------------|
-| 🟢 R (Running) | Green | Job is currently running |
-| ⚫ C (Completed) | Gray | Job has finished successfully |
-| 🔴 H (Held) | Red | Job is held/pending release |
-| 🔵 E (Exited) | Blue | Job completed with exit code |
-| 🟠 S (Suspending) | Orange | Job is being suspended |
-| 🟣 T (Terminating) | Purple | Job is being terminated |
-| 🟡 P (Pending) | Yellow | Job is pending allocation |
+| 🟢 R (Running) | Green | Job is running |
+| 🟡 Q / W (Queued / Waiting) | Amber | Job is waiting to start |
+| 🔴 H (Held) | Red | Job is held |
+| 🟣 B (Array) | Purple | Array job with running subjobs |
+| 🔵 E (Exiting) | Blue | Job is finishing |
+| 🟠 S / U (Suspended) | Orange | Job is suspended |
+| ⚫ F / X (Finished) | Gray | Job has finished (with "Include finished") |
 
 ## Security Notes
 
-- ✅ Credentials are encrypted locally using Fernet encryption
-- ✅ Encryption key is stored with the credentials file
-- ✅ Never share your password or `credentials.enc` file
-- ✅ Consider using SSH keys for more secure authentication
-- ✅ Credentials are only decrypted in memory during session
+- ✅ Bookmarks are stored encrypted in `~/.pbs_job_monitor.bookmarks`
+- ✅ The encryption key is stored separately in `~/.pbs_job_monitor.key` (mode 600)
+- ✅ Never share these two files
+- ✅ Consider using SSH keys instead of passwords (leave the password empty)
 
 ## Project Structure
 
 ```
 pbs-job-monitor/
-├── pbs_job_monitor.py    # Main GUI application (341 lines)
-├── README.md              # This documentation
-├── SCREENSHOT.md          # Detailed UI guide with ASCII mockups
-├── screenshot_main_window.svg  # Main login window screenshot (SVG)
-└── credentials.enc        # Encrypted credentials (auto-generated on login)
+├── pbs_job_monitor.py    # Main GUI application
+└── README.md              # This documentation
 ```
 
-### Code Highlights
-
-- **Single Class Design**: `PBSJobMonitor` class handles all functionality
-- **Secure Storage**: Fernet encryption for credentials
-- **Clean UI**: Tkinter with modern styling and colors
-- **Error Handling**: Graceful handling of SSH failures and timeouts
-- **Filter Functionality**: Filter jobs by state with dropdown
+Bookmarks and the encryption key live in your home directory, not in the project.
 
 ## Troubleshooting
 
-### "No jobs found" Error
+### No jobs shown
 
 Make sure:
-1. The frontend IP is correct and accessible
-2. Username and password are valid for PBS server
-3. You have permission to view your jobs with `qstat -u <user>`
+1. The host is correct and reachable
+2. User and password (or SSH key) are valid for the PBS server
+3. `qstat -u <user>` works on the frontend; tick **Include finished** to also see completed jobs
+
+### Blocky fonts on Linux
+
+If the text looks pixelated, your Tk was built without Xft and can only use the X11 `fixed` font
+(common with conda/miniforge Python). Install an Xft build of Tk:
+```bash
+conda install -c conda-forge "tk=*=xft_*"
+```
 
 ### SSH Connection Failed
 
@@ -113,11 +124,11 @@ Make sure:
 - Check that `qstat` command is installed on the PBS server
 - Ensure network connectivity between your machine and PBS server
 
-### Import Error: cryptography
+### Import Error: cryptography / paramiko
 
-Install the cryptography package:
+Install the dependencies:
 ```bash
-pip install cryptography
+pip install cryptography paramiko
 ```
 
 ## License
