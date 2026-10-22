@@ -100,6 +100,15 @@ If the text looks pixelated, your Tk was built without Xft and can only use the 
 conda install -c conda-forge "tk=*=xft_*"
 ```
 
+### Window too small or too large on 1440p / 4K screens
+
+The window scales itself to your display: it uses the desktop's `Xft.dpi` (set by GNOME/KDE display
+scaling), falling back to the X server DPI, so e.g. 192 DPI gives a 2x UI. If the detected size is not
+what you want, set the scale explicitly:
+```bash
+PBS_MONITOR_SCALE=1.5 python pbs_job_monitor.py   # e.g. 1.25-1.5 for 1440p, 2 for 4K
+```
+
 ### SSH Connection Failed
 
 - Verify you can SSH to the PBS server from your terminal

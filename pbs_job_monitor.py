@@ -18,6 +18,7 @@ import json
 import os
 import queue
 import shlex
+import subprocess
 import threading
 import paramiko
 
@@ -27,6 +28,7 @@ LEGACY_CREDENTIALS_FILE = 'credentials.enc'
 QSTAT = '/opt/pbs/bin/qstat'
 AUTO_REFRESH_DEFAULT_S = 30
 AUTO_REFRESH_MIN_S, AUTO_REFRESH_MAX_S = 5, 3600
+UI_SCALE_ENV = 'PBS_MONITOR_SCALE'  # e.g. 1.5 or 2 to override the detected UI scale
 
 # State letter -> (label, foreground, background)
 STATES = {
@@ -130,6 +132,33 @@ def parse_job_details(output):
     return attrs
 
 
+def xft_dpi():
+    """Desktop DPI from the X resources (Xft.dpi), as set by GNOME/KDE display scaling"""
+    try:
+        out = subprocess.run(['xrdb', '-query'], capture_output=True, text=True, timeout=2).stdout
+    except (OSError, subprocess.SubprocessError):
+        return None
+    for line in out.splitlines():
+        if line.startswith('Xft.dpi:'):
+            try:
+                return float(line.split(':', 1)[1])
+            except ValueError:
+                return None
+    return None
+
+
+def detect_ui_scale(root):
+    """UI scale factor relative to 96 DPI: $PBS_MONITOR_SCALE, else Xft.dpi, else the X server DPI"""
+    override = os.environ.get(UI_SCALE_ENV)
+    if override:
+        try:
+            return max(0.5, min(4.0, float(override)))
+        except ValueError:
+            print(f"Ignoring invalid {UI_SCALE_ENV}={override!r}")
+    dpi = xft_dpi() or root.winfo_fpixels('1i')
+    return max(1.0, round(dpi / 96 * 4) / 4)  # quarter steps: 120 DPI -> 1.25, 192 DPI -> 2
+
+
 def job_sort_key(job_id):
     digits = ''.join(c for c in job_id if c.isdigit())
     return (int(digits) if digits else 0, job_id)
@@ -203,8 +232,13 @@ class PBSJobMonitor:
     def __init__(self):
         self.master = tk.Tk()
         self.master.title("PBS Job Monitor")
-        self.master.geometry("1280x760")
-        self.master.minsize(900, 560)
+        # Fonts in points follow tk scaling; pixel sizes go through self.px()
+        self.scale = detect_ui_scale(self.master)
+        self.master.tk.call('tk', 'scaling', self.scale * 96 / 72)
+        screen_w, screen_h = self.master.winfo_screenwidth(), self.master.winfo_screenheight()
+        width, height = min(self.px(1280), int(screen_w * 0.9)), min(self.px(760), int(screen_h * 0.9))
+        self.master.geometry(f"{width}x{height}")
+        self.master.minsize(min(self.px(900), width), min(self.px(560), height))
         self.master.configure(bg=BG)
 
         self.bookmarks = BookmarkStore()
@@ -234,7 +268,7 @@ class PBSJobMonitor:
 
         # Start with the divider where all job list columns fit
         self.master.update_idletasks()
-        self.paned.sashpos(0, sum(c[2] for c in COLUMNS) + 20)
+        self.paned.sashpos(0, self.px(sum(c[2] for c in COLUMNS) + 20))
 
         self.master.bind('<F5>', lambda _: self.refresh_jobs())
         self.master.protocol('WM_DELETE_WINDOW', self.on_close)
@@ -242,9 +276,16 @@ class PBSJobMonitor:
 
     # ------------------------------------------------------------------ UI
 
+    def px(self, pixels):
+        """Scale a size given in 96-DPI pixels to the current UI scale"""
+        return int(round(pixels * self.scale))
+
     def setup_styles(self):
+        # Tk defines its fonts in pixels on X11, which would ignore tk scaling: switch them to points
+        for name in tkfont.names(self.master):
+            small = name in ('TkSmallCaptionFont', 'TkTooltipFont')
+            tkfont.nametofont(name).configure(size=9 if small else 10)
         default_font = tkfont.nametofont('TkDefaultFont')
-        default_font.configure(size=10)
         self.font_bold = default_font.copy()
         self.font_bold.configure(weight='bold')
         self.font_title = default_font.copy()
@@ -256,50 +297,61 @@ class PBSJobMonitor:
         style.configure('.', background=BG)
         style.configure('TFrame', background=BG)
         style.configure('TLabel', background=BG)
-        style.configure('Card.TFrame', background='white', relief='solid', borderwidth=1)
+        style.configure('Card.TFrame', background='white', relief='solid', borderwidth=max(1, self.px(1)))
         style.configure('Card.TLabel', background='white')
         style.configure('Muted.TLabel', background='white', foreground=MUTED)
         style.configure('Title.TLabel', background='white', font=self.font_title)
         style.configure('TLabelframe', background=BG)
         style.configure('TLabelframe.Label', background=BG, foreground=MUTED, font=self.font_bold)
-        style.configure('TCheckbutton', background=BG)
+        style.configure('TCheckbutton', background=BG, padding=self.px(2), indicatorsize=self.px(10),
+                        indicatormargin=(self.px(1), self.px(1), self.px(4), self.px(1)))
+        style.configure('TButton', padding=self.px(5))
+        style.configure('TEntry', padding=self.px(1))
+        style.configure('TCombobox', padding=self.px(1), arrowsize=self.px(14))
+        style.configure('TSpinbox', padding=(self.px(2), 0, self.px(10), 0), arrowsize=self.px(10))
+        style.configure('TScrollbar', arrowsize=self.px(14))
+        style.configure('Sash', sashthickness=self.px(6))
         style.configure('Accent.TButton', background=ACCENT, foreground='white', font=self.font_bold)
         style.map('Accent.TButton', background=[('active', '#1d4ed8'), ('disabled', '#93c5fd')])
-        style.configure('Treeview', rowheight=26, background='white', fieldbackground='white')
+        style.configure('Treeview', rowheight=default_font.metrics('linespace') + self.px(10),
+                        background='white', fieldbackground='white')
         style.configure('Treeview.Heading', font=self.font_bold, background='#e5e7eb')
         style.map('Treeview', background=[('selected', '#bfdbfe')], foreground=[('selected', '#111827')])
 
     def build_header(self):
-        header = tk.Frame(self.master, bg=HEADER_BG, height=48)
+        header = tk.Frame(self.master, bg=HEADER_BG)
         header.pack(fill='x')
         tk.Label(header, text="PBS Job Monitor", bg=HEADER_BG, fg=HEADER_FG,
-                 font=self.font_title).pack(side='left', padx=16, pady=10)
+                 font=self.font_title).pack(side='left', padx=self.px(16), pady=self.px(10))
         # Status dot is drawn rather than a text glyph: Tk builds without Xft lack most symbols
         self.conn_label = tk.Label(header, text="Disconnected", bg=HEADER_BG, fg='#9ca3af',
                                    font=self.font_bold)
-        self.conn_label.pack(side='right', padx=(4, 16))
-        self.conn_dot = tk.Canvas(header, width=12, height=12, bg=HEADER_BG, highlightthickness=0)
-        self.conn_dot_id = self.conn_dot.create_oval(1, 1, 11, 11, fill='#9ca3af', outline='')
+        self.conn_label.pack(side='right', padx=(self.px(4), self.px(16)))
+        dot = self.px(12)
+        self.conn_dot = tk.Canvas(header, width=dot, height=dot, bg=HEADER_BG, highlightthickness=0)
+        self.conn_dot_id = self.conn_dot.create_oval(1, 1, dot - 1, dot - 1, fill='#9ca3af', outline='')
         self.conn_dot.pack(side='right')
 
     def build_connection_bar(self):
-        bar = ttk.LabelFrame(self.master, text="Connection", padding=(10, 6))
-        bar.pack(fill='x', padx=12, pady=(10, 4))
+        bar = ttk.LabelFrame(self.master, text="Connection", padding=(self.px(10), self.px(6)))
+        bar.pack(fill='x', padx=self.px(12), pady=(self.px(10), self.px(4)))
 
-        ttk.Label(bar, text="Bookmark").grid(row=0, column=0, sticky='w', padx=(0, 6))
+        ttk.Label(bar, text="Bookmark").grid(row=0, column=0, sticky='w', padx=(0, self.px(6)))
         self.bookmark_var = tk.StringVar()
         self.bookmark_combo = ttk.Combobox(bar, textvariable=self.bookmark_var, state='readonly', width=22)
         self.bookmark_combo.grid(row=0, column=1, sticky='w')
         self.bookmark_combo.bind('<<ComboboxSelected>>', self.on_bookmark_selected)
-        ttk.Button(bar, text="Save", command=self.save_bookmark).grid(row=0, column=2, padx=(6, 2))
-        ttk.Button(bar, text="Delete", command=self.delete_bookmark).grid(row=0, column=3, padx=(2, 16))
+        ttk.Button(bar, text="Save", command=self.save_bookmark).grid(
+            row=0, column=2, padx=(self.px(6), self.px(2)))
+        ttk.Button(bar, text="Delete", command=self.delete_bookmark).grid(
+            row=0, column=3, padx=(self.px(2), self.px(16)))
 
         self.host_var, self.user_var, self.password_var = tk.StringVar(), tk.StringVar(), tk.StringVar()
         fields = (("Host", self.host_var, 24, ''), ("User", self.user_var, 14, ''),
                   ("Password", self.password_var, 16, '*'))
         col = 4
         for label, var, width, show in fields:
-            ttk.Label(bar, text=label).grid(row=0, column=col, sticky='w', padx=(8, 6))
+            ttk.Label(bar, text=label).grid(row=0, column=col, sticky='w', padx=(self.px(8), self.px(6)))
             entry = ttk.Entry(bar, textvariable=var, width=width, show=show)
             entry.grid(row=0, column=col + 1, sticky='we')
             entry.bind('<Return>', lambda _: self.connect())
@@ -307,18 +359,15 @@ class PBSJobMonitor:
         bar.columnconfigure(5, weight=1)
 
         self.connect_btn = ttk.Button(bar, text="Connect", style='Accent.TButton', command=self.toggle_connection)
-        self.connect_btn.grid(row=0, column=col, padx=(12, 0))
+        self.connect_btn.grid(row=0, column=col, padx=(self.px(12), 0))
 
     def build_toolbar(self):
-        bar = ttk.Frame(self.master, padding=(12, 6))
+        bar = ttk.Frame(self.master, padding=(self.px(12), self.px(6)))
         bar.pack(fill='x')
-
-        self.chips_frame = ttk.Frame(bar)
-        self.chips_frame.pack(side='left')
 
         self.refresh_btn = ttk.Button(bar, text="Refresh", command=self.refresh_jobs)
         self.refresh_btn.pack(side='right')
-        ttk.Label(bar, text="s").pack(side='right', padx=(2, 8))
+        ttk.Label(bar, text="s").pack(side='right', padx=(self.px(2), self.px(8)))
         self.interval_var = tk.StringVar(value=str(self.bookmarks.refresh_seconds))
         interval = ttk.Spinbox(bar, textvariable=self.interval_var, width=5, increment=5,
                                from_=AUTO_REFRESH_MIN_S, to=AUTO_REFRESH_MAX_S,
@@ -328,20 +377,23 @@ class PBSJobMonitor:
         interval.bind('<FocusOut>', self.on_interval_changed)
         self.auto_var = tk.BooleanVar(value=False)
         ttk.Checkbutton(bar, text="Auto-refresh every", variable=self.auto_var,
-                        command=self.schedule_refresh).pack(side='right', padx=(8, 4))
+                        command=self.schedule_refresh).pack(side='right', padx=(self.px(8), self.px(4)))
         self.finished_var = tk.BooleanVar(value=False)
         ttk.Checkbutton(bar, text="Include finished", variable=self.finished_var,
-                        command=self.refresh_jobs).pack(side='right', padx=8)
+                        command=self.refresh_jobs).pack(side='right', padx=self.px(8))
         self.search_var = tk.StringVar()
         self.search_var.trace_add('write', lambda *_: self.populate_tree())
-        ttk.Entry(bar, textvariable=self.search_var, width=22).pack(side='right')
-        ttk.Label(bar, text="Search").pack(side='right', padx=(8, 4))
+        ttk.Entry(bar, textvariable=self.search_var, width=16).pack(side='right')
+        ttk.Label(bar, text="Search").pack(side='right', padx=(self.px(8), self.px(4)))
 
+        # Packed last so that on a narrow window the chips get clipped, not the controls
+        self.chips_frame = ttk.Frame(bar)
+        self.chips_frame.pack(side='left')
         self.render_chips()
 
     def build_main_area(self):
         self.paned = paned = ttk.PanedWindow(self.master, orient='horizontal')
-        paned.pack(fill='both', expand=True, padx=12, pady=(0, 6))
+        paned.pack(fill='both', expand=True, padx=self.px(12), pady=(0, self.px(6)))
 
         # Job list
         list_frame = ttk.Frame(paned)
@@ -349,8 +401,8 @@ class PBSJobMonitor:
                                  selectmode='browse')
         for key, title, width, stretch in COLUMNS:
             self.tree.heading(key, text=title, command=lambda k=key: self.sort_by(k))
-            self.tree.column(key, width=width, minwidth=width if stretch else 50, stretch=stretch,
-                             anchor='w' if key in ('name', 'queue', 'state') else 'center')
+            self.tree.column(key, width=self.px(width), minwidth=self.px(width if stretch else 50),
+                             stretch=stretch, anchor='w' if key in ('name', 'queue', 'state') else 'center')
         for letter, (_, fg, bg) in STATES.items():
             self.tree.tag_configure(letter, foreground=fg, background=bg)
         self.add_scrollbars(list_frame, self.tree)
@@ -358,29 +410,31 @@ class PBSJobMonitor:
         paned.add(list_frame, weight=3)
 
         # Details card
-        card = ttk.Frame(paned, style='Card.TFrame', padding=12)
+        card = ttk.Frame(paned, style='Card.TFrame', padding=self.px(12))
         head = ttk.Frame(card, style='Card.TFrame', borderwidth=0)
         head.pack(fill='x')
         self.detail_title = ttk.Label(head, text="No job selected", style='Title.TLabel')
         self.detail_title.pack(side='left')
-        self.detail_badge = tk.Label(head, text="", font=self.font_bold, padx=8, pady=2, bg='white')
+        self.detail_badge = tk.Label(head, text="", font=self.font_bold,
+                                     padx=self.px(8), pady=self.px(2), bg='white')
         self.detail_badge.pack(side='right')
         self.detail_subtitle = ttk.Label(card, text="Select a job from the list to see its details.",
                                          style='Muted.TLabel')
-        self.detail_subtitle.pack(fill='x', pady=(2, 8))
+        self.detail_subtitle.pack(fill='x', pady=(self.px(2), self.px(8)))
 
         self.summary_frame = ttk.Frame(card, style='Card.TFrame', borderwidth=0)
         self.summary_frame.pack(fill='x')
         self.summary_frame.columnconfigure(1, weight=1)
 
-        ttk.Label(card, text="All attributes", style='Muted.TLabel').pack(anchor='w', pady=(10, 2))
+        ttk.Label(card, text="All attributes", style='Muted.TLabel').pack(
+            anchor='w', pady=(self.px(10), self.px(2)))
         attr_frame = ttk.Frame(card, style='Card.TFrame', borderwidth=0)
         attr_frame.pack(fill='both', expand=True)
         self.attr_tree = ttk.Treeview(attr_frame, columns=('attr', 'value'), show='headings')
         self.attr_tree.heading('attr', text='Attribute', anchor='w')
         self.attr_tree.heading('value', text='Value', anchor='w')
-        self.attr_tree.column('attr', width=170, stretch=False)
-        self.attr_tree.column('value', width=280, stretch=False)
+        self.attr_tree.column('attr', width=self.px(170), stretch=False)
+        self.attr_tree.column('value', width=self.px(280), stretch=False)
         self.add_scrollbars(attr_frame, self.attr_tree)
         self.attr_tree.bind('<Double-1>', self.copy_attribute)
         paned.add(card, weight=2)
@@ -399,7 +453,7 @@ class PBSJobMonitor:
     def build_status_bar(self):
         self.status_var = tk.StringVar(value="Not connected")
         tk.Label(self.master, textvariable=self.status_var, anchor='w', bg='#e5e7eb', fg='#374151',
-                 padx=12, pady=3).pack(fill='x', side='bottom')
+                 padx=self.px(12), pady=self.px(3)).pack(fill='x', side='bottom')
 
     def set_status(self, text):
         self.status_var.set(text)
@@ -630,9 +684,9 @@ class PBSJobMonitor:
         for letter, text, fg, bg in chips:
             active = letter == self.state_filter
             chip = tk.Label(self.chips_frame, text=text, fg=fg, bg=bg, font=self.font_bold,
-                            padx=10, pady=3, cursor='hand2',
-                            highlightthickness=2, highlightbackground=fg if active else BG)
-            chip.pack(side='left', padx=(0, 6))
+                            padx=self.px(10), pady=self.px(3), cursor='hand2',
+                            highlightthickness=self.px(2), highlightbackground=fg if active else BG)
+            chip.pack(side='left', padx=(0, self.px(6)))
             chip.bind('<Button-1>', lambda _, s=letter: self.set_state_filter(s))
 
     def set_state_filter(self, letter):
@@ -719,9 +773,9 @@ class PBSJobMonitor:
             if not values:
                 continue
             ttk.Label(self.summary_frame, text=title, style='Muted.TLabel').grid(
-                row=row, column=0, sticky='nw', padx=(0, 12), pady=1)
+                row=row, column=0, sticky='nw', padx=(0, self.px(12)), pady=self.px(1))
             ttk.Label(self.summary_frame, text=' / '.join(values), style='Card.TLabel',
-                      wraplength=360).grid(row=row, column=1, sticky='w', pady=1)
+                      wraplength=self.px(360)).grid(row=row, column=1, sticky='w', pady=self.px(1))
             row += 1
 
         self.attr_tree.delete(*self.attr_tree.get_children())
@@ -729,7 +783,7 @@ class PBSJobMonitor:
             self.attr_tree.insert('', 'end', values=(key, value))
         font = tkfont.nametofont('TkDefaultFont')
         widest = max((font.measure(v) for v in attrs.values()), default=0)
-        self.attr_tree.column('value', width=max(280, widest + 20))
+        self.attr_tree.column('value', width=max(self.px(280), widest + self.px(20)))
 
     def copy_attribute(self, _=None):
         item = self.attr_tree.focus()
